@@ -1,5 +1,5 @@
 
-import {  Request, Response ,NextFunction } from 'express';
+import {  Request, Response ,NextFunction, Application } from 'express';
 import { CreateFoodInput, CreateOfferInputs, EditVendorInput, VendorLoginInput } from '../dto'
 import { Food } from '../models';
 import { Offer } from '../models/Offer';
@@ -21,7 +21,7 @@ export const VendorLogin = async (req: Request,res: Response, next: NextFunction
         if(validation){
 
             const signature = await GenerateSignature({
-                _id: existingUser._id,
+                _id: existingUser._id as string,
                 email: existingUser.email,
                 name: existingUser.name
             })
@@ -115,11 +115,13 @@ export const UpdateVendorCoverImage = async (req: Request,res: Response, next: N
 
             const saveResult = await vendor.save();
             
-            return res.json(saveResult);
+            res.json(saveResult);
+            return 
        }
 
     }
-    return res.json({'message': 'Unable to Update vendor profile '})
+    res.json({'message': 'Unable to Update vendor profile '})
+    return 
 
 }
 
@@ -219,11 +221,13 @@ export const GetCurrentOrders = async (req: Request, res: Response, next: NextFu
         const orders = await Order.find({ vendorId: user._id}).populate('items.food');
 
         if(orders != null){
-            return res.status(200).json(orders);
+            res.status(200).json(orders);
+            return 
         }
     }
 
-    return res.json({ message: 'Orders Not found'});
+    res.json({ message: 'Orders Not found'});
+    return 
 }
 
 export const GetOrderDetails = async (req: Request, res: Response, next: NextFunction) => {
@@ -235,11 +239,13 @@ export const GetOrderDetails = async (req: Request, res: Response, next: NextFun
         const order = await Order.findById(orderId).populate('items.food');
 
         if(order != null){
-            return res.status(200).json(order);
+            res.status(200).json(order);
+            return 
         }
     }
 
-    return res.json({ message: 'Order Not found'});
+    res.json({ message: 'Order Not found'});
+    return 
 }
 
 export const ProcessOrder = async (req: Request, res: Response, next: NextFunction) => {
@@ -252,6 +258,10 @@ export const ProcessOrder = async (req: Request, res: Response, next: NextFuncti
     if(orderId){
 
         const order = await Order.findById(orderId).populate('food');
+        if (!order){
+            res.json({ message: 'order Doesnt Exists'});
+            return 
+        }
 
         order.orderStatus = status;
         order.remarks = remarks;
@@ -262,11 +272,13 @@ export const ProcessOrder = async (req: Request, res: Response, next: NextFuncti
         const orderResult = await order.save();
 
         if(orderResult != null){
-            return res.status(200).json(orderResult);
+            res.status(200).json(orderResult);
+            return 
         }
     }
 
-    return res.json({ message: 'Unable to process order'});
+    res.json({ message: 'Unable to process order'});
+    return 
 }
 
 export const GetOffers = async (req: Request, res: Response, next: NextFunction) => {
@@ -300,11 +312,13 @@ export const GetOffers = async (req: Request, res: Response, next: NextFunction)
 
         }
 
-        return res.status(200).json(currentOffer);
+        res.status(200).json(currentOffer);
+        return 
 
     }
 
-    return res.json({ message: 'Offers Not available'});
+    res.json({ message: 'Offers Not available'});
+    return 
 }
 
 
@@ -338,13 +352,15 @@ export const AddOffer = async (req: Request, res: Response, next: NextFunction) 
 
             console.log(offer);
 
-            return res.status(200).json(offer);
+            res.status(200).json(offer);
+            return 
 
         }
 
     }
 
-    return res.json({ message: 'Unable to add Offer!'});
+    res.json({ message: 'Unable to add Offer!'});
+    return 
 
     
 
@@ -382,14 +398,16 @@ export const EditOffer = async (req: Request, res: Response, next: NextFunction)
 
                 const result = await currentOffer.save();
 
-                return res.status(200).json(result);
+                res.status(200).json(result);
+                return 
             }
             
         }
 
     }
 
-    return res.json({ message: 'Unable to add Offer!'});    
+    res.json({ message: 'Unable to add Offer!'});    
+    return 
 
 }
 

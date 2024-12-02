@@ -1,17 +1,18 @@
 
 import { Request, Response, NextFunction } from "express";
 import { CreateVandorInput } from "../dto";
-import { Vandor } from "../models";
+import { DeliveryUser, Vendor } from "../models";
 import { sanitizeFilter } from "mongoose";
 import { GeneratePassword, GenerateSalt } from "../utility/PasswordUtility";
+import { Transaction } from "../models/Transaction";
 
 
 export const FindVendor = async (id: string | undefined, email?: string) => {
 
     if (email){
-        return await Vandor.findOne({email});
+        return await Vendor.findOne({email});
     }else{
-        return await Vandor.findById(id);
+        return await Vendor.findById(id);
     }
 }
 
@@ -35,7 +36,7 @@ export const CreateVandor = async (req: Request, res: Response, next: NextFuncti
     // encrypt the password using the salt
     
 
-    const createdVandor =  await Vandor.create({
+    const createdVandor =  await Vendor.create({
         name: name,
         address: address,
         pincode: pincode,
@@ -59,7 +60,7 @@ export const CreateVandor = async (req: Request, res: Response, next: NextFuncti
 
 export const GetVanndors = async (req: Request, res: Response, next: NextFunction) => {
 
-    const vandors = await Vandor.find();
+    const vandors = await Vendor.find();
 
     if (vandors !== null){
         res.json(vandors)
@@ -94,10 +95,12 @@ export const GetTransactions = async (req: Request, res: Response, next: NextFun
     const transactions = await Transaction.find();
 
     if(transactions){
-        return res.status(200).json(transactions)
+        res.status(200).json(transactions)
+        return 
     }
 
-    return res.json({"message": "Transactions data not available"})
+    res.json({"message": "Transactions data not available"})
+    return 
 
 }
 
@@ -109,10 +112,12 @@ export const GetTransactionById = async (req: Request, res: Response, next: Next
     const transaction = await Transaction.findById(id);
 
     if(transaction){
-        return res.status(200).json(transaction)
+        res.status(200).json(transaction)
+        return 
     }
 
-     return res.json({"message": "Transaction data not available"})
+    res.json({"message": "Transaction data not available"})
+    return 
 
 }
 
@@ -128,11 +133,13 @@ export const VerifyDeliveryUser = async (req: Request, res: Response, next: Next
             profile.verified = status;
             const result = await profile.save();
 
-            return res.status(200).json(result);
+            res.status(200).json(result);
+            return 
         }
     }
 
-    return res.json({ message: 'Unable to verify Delivery User'});
+    res.json({ message: 'Unable to verify Delivery User'});
+    return 
 }
 
 
@@ -141,8 +148,10 @@ export const GetDeliveryUsers = async (req: Request, res: Response, next: NextFu
     const deliveryUsers = await DeliveryUser.find();
 
     if(deliveryUsers){
-        return res.status(200).json(deliveryUsers);
+        res.status(200).json(deliveryUsers);
+        return 
     }
     
-    return res.json({ message: 'Unable to get Delivery Users'});
+    res.json({ message: 'Unable to get Delivery Users'});
+    return 
 }

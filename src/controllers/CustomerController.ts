@@ -1,7 +1,7 @@
 import { plainToClass } from 'class-transformer';
 import { validate } from 'class-validator';
 import express, { Request, Response, NextFunction } from 'express';
-import { CartItem, CreateCustomerInput, EditCustomerProfileInput, OrderInputs, UserLoginInput } from '../dto';
+import { CartItem, CreateCustomerInput, CustomerPayload, EditCustomerProfileInput, OrderInputs, UserLoginInput } from '../dto';
 import {Customer, DeliveryUser, Food, Vendor} from '../models';
 import { Offer } from '../models/Offer';
 import { Order } from '../models/Order';
@@ -53,7 +53,7 @@ export const CustomerSignUp = async (req: Request, res: Response, next: NextFunc
         
         //Generate the Signature
         const signature = await GenerateSignature({
-            _id: result._id,
+            _id: result._id as string,
             email: result.email,
             verified: result.verified
         })
@@ -86,7 +86,7 @@ export const CustomerLogin = async (req: Request, res: Response, next: NextFunct
         if(validation){
 
             const signature = GenerateSignature({
-                _id: customer._id,
+                _id: customer._id as string,
                 email: customer.email,
                 verified: customer.verified
             })
@@ -118,7 +118,7 @@ export const CustomerVerify = async (req: Request, res: Response, next: NextFunc
                 const updatedCustomerResponse = await profile.save();
 
                 const signature = GenerateSignature({
-                    _id: updatedCustomerResponse._id,
+                    _id: updatedCustomerResponse._id as string,
                     email: updatedCustomerResponse.email,
                     verified: updatedCustomerResponse.verified
                 })
@@ -282,11 +282,22 @@ export const CreateOrder = async (req: Request, res: Response, next: NextFunctio
         const { status, currentTransaction } =  await validateTransaction(txnId);
 
         if(!status){
-            return res.status(404).json({ message: 'Error while Creating Order!'})
+            res.status(404).json({ message: 'Error while Creating Order!'})
+            return 
+        }
+
+        if(!currentTransaction){
+            res.status(404).json({ message: 'Error while Creating Order!'})
+            return 
         }
 
         const profile = await Customer.findById(customer._id);
 
+
+        if(!profile){
+            res.status(404).json({ message: 'Customer Doesnt Exists!'})
+            return 
+        }
 
         const orderId = `${Math.floor(Math.random() * 89999)+ 1000}`;
 
@@ -296,7 +307,7 @@ export const CreateOrder = async (req: Request, res: Response, next: NextFunctio
 
         let netAmount = 0.0;
 
-        let vendorId;
+        let vendorId = "";
 
         const foods = await Food.find().where('_id').in(cart.map(item => item._id)).exec();
 
@@ -305,7 +316,7 @@ export const CreateOrder = async (req: Request, res: Response, next: NextFunctio
                 if(food._id == _id){
                     vendorId = food.vendorId;
                     netAmount += (food.price * unit);
-                    cartItems.push({ food._id, unit})
+                    cartItems.push({ food:food._id, unit})
                 }
             })
         })
@@ -325,6 +336,12 @@ export const CreateOrder = async (req: Request, res: Response, next: NextFunctio
                 readyTime: 45
             })
 
+            if (!currentOrder){
+                res.status(400).json({ msg: 'Creating Order Failed'});
+                return 
+
+            }
+
             profile.cart = [] as any;
             profile.orders.push(currentOrder);
  
@@ -335,11 +352,12 @@ export const CreateOrder = async (req: Request, res: Response, next: NextFunctio
             
             await currentTransaction.save();
 
-            await assignOrderForDelivery(currentOrder._id, vendorId);
+            await assignOrderForDelivery(currentOrder._id as string, vendorId);
 
             const profileResponse =  await profile.save();
 
-            return res.status(200).json(profileResponse);
+            res.status(200).json(profileResponse);
+            return 
 
         }
 
@@ -357,12 +375,14 @@ export const GetOrders = async (req: Request, res: Response, next: NextFunction)
  
         const profile = await Customer.findById(customer._id).populate("orders");
         if(profile){
-            return res.status(200).json(profile.orders);
+            res.status(200).json(profile.orders);
+            return 
         }
 
     }
 
-    return res.status(400).json({ msg: 'Orders not found'});
+    res.status(400).json({ msg: 'Orders not found'});
+    return 
 }
 
 
@@ -505,7 +525,7 @@ export const VerifyOffer = async (req: Request, res: Response, next: NextFunctio
 
 export const CreatePayment = async (req: Request, res: Response, next: NextFunction) => {
 
-    const customer = req.user;
+    const customer = req.user as CustomerPayload;
 
     const { amount, paymentMode, offerId} = req.body;
 
@@ -514,6 +534,10 @@ export const CreatePayment = async (req: Request, res: Response, next: NextFunct
     if(offerId){
 
         const appliedOffer = await Offer.findById(offerId);
+
+        if(!appliedOffer){
+            return res.status(200).json({ message: 'Offer is Not Valid'});
+        }
 
         if(appliedOffer.isActive){
             payableAmount = (payableAmount - appliedOffer.offerAmount);

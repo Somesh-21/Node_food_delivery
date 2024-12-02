@@ -49,4 +49,4 @@ res.json({ message: "Hello from Vandor"})
 
 
 
-export { router as VandorRoute };
+export { router as VendorRoute };

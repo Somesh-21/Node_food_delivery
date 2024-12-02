@@ -1,2 +1,2 @@
-export * from './PasswordUnility';
+export * from './PasswordUtility';
 export * from './NotificationUtility';
